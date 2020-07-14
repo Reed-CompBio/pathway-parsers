@@ -5,7 +5,7 @@ import argparse
 import itertools
 
 ## other utility functions
-import file_utils 
+import file_utils
 from convert_utils import *  ## map_namespace(), c(), convert()
 
 ## Biopython modules to interact with KEGG
@@ -30,14 +30,14 @@ def main(args):
 		pathways = REST.kegg_list('pathway',org=args.species)
 	else: # pathways is simply the single --graph_single value.
 		pathways = [args.graph_single]
-		
+
 	## If --list is specified, print all pathways to console.
-	if args.list: 
+	if args.list:
 		for p in pathways:
 			print(p.strip())
 		print()
 
-	## if --graph or --graph_single is specified, 
+	## if --graph or --graph_single is specified,
 	## get interactions and make graph for each pathway
 	if args.graph or args.graph_single:
 
@@ -63,7 +63,7 @@ def main(args):
 				print('KGML file does not exist. Pull it down from KEGG...')
 				kgml = REST.kegg_get(name,option='kgml')
 				file_utils.write_kgml(kgml_file,kgml)
-			
+
 			# parse the pathway.
 			pathway = KGML_parser.read(open(kgml_file))
 
@@ -92,11 +92,11 @@ def main(args):
 			print(' deleting %d gene groups with no mapping' % (len(to_delete)))
 			for n in to_delete:
 				del pathway.gene_groups[n]
-			
+
 			# pathway_ids are all the pathway IDs in genes & groups.
 			pathway_ids = set(pathway.gene_entries.keys()).union(set(pathway.gene_groups.keys()))
 
-			# retain relations that are among gene or group entries only and 
+			# retain relations that are among gene or group entries only and
 			pathway.gene_relations = [r for r in pathway.relations if r.entry1.id in pathway_ids and r.entry2.id in pathway_ids and not ignore(r)]
 
 			print(' %d entries, %d groups, & %d relations after retaining genes & groups and removing ignored edges.' % (len(pathway.gene_entries),len(pathway.gene_groups),len(pathway.gene_relations)))
@@ -110,7 +110,7 @@ def main(args):
 
 			relations_file = '%s/%s-gene-relations.txt' % (args.outdir,short_name)
 			file_utils.write_kgml_relations(relations_file,pathway)
-			
+
 			## generate graphs
 			relation_counts = {'dir':0,'undir':0}
 
@@ -146,14 +146,14 @@ def main(args):
 
 			print('Processed %d directed and %d undirected KEGG relations' % (relation_counts['dir'],relation_counts['undir']))
 
-			## write edge files 
+			## write edge files
 			collapse_file = '%s/%s-collapsed-edges.txt' % (args.outdir,short_name)
 			expand_file = '%s/%s-expanded-edges.txt' % (args.outdir,short_name)
 			file_utils.write_edge_files(collapse_file,collapse_edges,expand_file,expand_edges)
 
 		print('Done making graph for each pathway.')
 
-	return 
+	return
 
 def add_to_dictionary(d,key,value):
 	"""
@@ -256,7 +256,7 @@ def expand_entry_edges(n1,n2,t1,t2,rel_type,expanded_groups):
 
 	## if n1 is a group and we haven't expanded it yet, introduce all vs. all edges.
 	if t1 == 'group' and c(n1) not in expanded_groups:
-		for u1,u2 in itertools.permutations(n1,2): 
+		for u1,u2 in itertools.permutations(n1,2):
 			expanded.add((u1,u2,'group_expansion'))
 		expanded_groups.add(c(n1))
 
@@ -269,7 +269,7 @@ def expand_entry_edges(n1,n2,t1,t2,rel_type,expanded_groups):
 	## if n1 and n2 are single nodes, we have a one-to-one mapping of the collapsed edge.
 	if len(n1) == 1 and len(n2) == 1:
 		expanded.add((n1.pop(),n2.pop(),'one_to_one_mapping:%s' % (rel_type)))
-	else: 
+	else:
 		# otherwise, the edges are expanded from a multiple mappings (many-to-one, one-to-many, or many-to-many).
 		# for now, these are all considered as "multiple mappings".
 		for u1,u2 in itertools.product(n1,n2):
@@ -304,22 +304,22 @@ def ignore(entry):
 	subtypes = set(s[0] for s in entry.subtypes)
 
 	# ignore relations with no subtypes.
-	if len(subtypes) == 0: 
+	if len(subtypes) == 0:
 		return True
 
 	# ignore 'state-change', 'missing-interaction', or 'expression' subtypes
 	if 'state change' in subtypes or 'missing interaction' in subtypes or 'expression' in subtypes:
 		return True
 
-	# if we get this far, edge is not ignored. 
+	# if we get this far, edge is not ignored.
 	return False
 
 def directed(entry):
 	"""
-	Checks if the relation entry is directed according to user-specified rules.  
+	Checks if the relation entry is directed according to user-specified rules.
 
-	Relations have multiple subtypes; this function processes the subtypes in a 
-	specific order. 
+	Relations have multiple subtypes; this function processes the subtypes in a
+	specific order.
 
 	Parameters
 	-----------
@@ -335,26 +335,26 @@ def directed(entry):
 
 	## get the subtype names of this entry.
 	subtypes = set([s[0] for s in entry.subtypes])
-	
+
 	# If edge has 'activation' or 'inhibition' edge type, let this set the direction.
-	# activation/inhibition: 'positive and negative effects which may be associated 
+	# activation/inhibition: 'positive and negative effects which may be associated
 	# with molecular information below'
 	if 'activation' in subtypes or 'inhibition' in subtypes:
 		return True
-		
+
 	# If the edge is a molecular event (phos,dephos,glyco,ubiq,or methyl),
 	# it is a directed edge.  Doesn't matter if it also has an undirected subtype.
 	if 'phosphorylation' in subtypes or 'dephosphorylation' in subtypes or \
 			'glycosylation' in subtypes or 'ubiquitination' in subtypes or \
 			'methylation' in subtypes:
 		return True
-		
+
 	# If edge is 'indirect effect', then it is directed.
 	elif 'indirect effect' in subtypes:
 		return True
 
-	# Compounds are tricky.  For now, add directed edges for compound.  
-	# compound: "shared with two successive reactions (ECrel) or intermediate of two 
+	# Compounds are tricky.  For now, add directed edges for compound.
+	# compound: "shared with two successive reactions (ECrel) or intermediate of two
 	# interacting proteins (PPrel)"
 	elif 'compound' in subtypes:
 		return True
@@ -367,16 +367,16 @@ def directed(entry):
 	elif 'binding/association' in subtypes or 'dissociation' in subtypes \
 			or 'group' in subtypes:
 		return False
-		
-	else: 
+
+	else:
 		print('ERROR! Edge direction cannot be established with subtypes %s' % (c(subtypes)))
 		print(entry)
 		sys.exit()
-	
+
 	return
 
 def parse_arguments():
-	""" 
+	"""
 	Argument Parser for parse_kegg.py.
 
 	Returns
@@ -397,11 +397,11 @@ def parse_arguments():
 	## one of --list, -graph, or --graph_single must be specified.
 	if not(args.list or args.graph or args.graph_single):
 		sys.exit('ERROR: --list, --graph, or --graph_single must be specified. Exiting.')
-	
+
 	## only one of --graph and --graph_single can be specified.
 	if args.graph and args.graph_single:
 		sys.exit('ERROR: --graph and --graph_single cannot both be specified. Exiting.')
-	
+
 	## outdir must be specified if we are generating a graph
 	if (args.graph or args.graph_single) and not args.outdir:
 		sys.exit('ERROR: --species and --outdir must be specified to make graphs. Exiting.')
@@ -414,7 +414,7 @@ def parse_arguments():
 	if (args.graph or args.graph_single) and not os.path.isdir(args.outdir):
 		print('making output directory %s...' % (args.outdir))
 		os.makedirs(args.outdir)
-	
+
 	return args
 
 if __name__ == '__main__':

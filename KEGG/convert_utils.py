@@ -25,7 +25,7 @@ def map_namespace(args):
 
 	## convert all the keggIDs to the args.convert namespace for the args.species species
 	response = REST.kegg_conv(args.convert,args.species)
-	
+
 	## if there is a filter file (args.filter), read the file as a single column and store
 	## identifiers as a set. Any identifier NOT in this file will subseqently be ignored.
 	to_filter = None
@@ -48,16 +48,16 @@ def map_namespace(args):
 		# if the mapped ID is in the filter file.
 		if to_filter and new_id not in to_filter:
 			continue
-		
+
 		## update the dictionaries
 		if kegg not in kegg2id:
 			kegg2id[kegg] = set()
 		kegg2id[kegg].add(new_id)
-		
+
 		if new_id not in id2kegg:
 			id2kegg[new_id] = set()
 		id2kegg[new_id].add(kegg)
-		
+
 	return kegg2id, id2kegg
 
 def convert(kegg,kegg2id):
@@ -75,7 +75,7 @@ def convert(kegg,kegg2id):
 	Returns
 	-------------
 	set
-	   A set of mapped identifiers (which may be a different size than the original keggID input).  
+	   A set of mapped identifiers (which may be a different size than the original keggID input).
 	   If there are no mapped IDs then the function returns None. This is handled in other functions.
 	"""
 
@@ -117,13 +117,12 @@ def c(s,delim='|'):
 	  if the value cannot be compressed.
 	"""
 
-	if type(s) == str: 
+	if type(s) == str:
 		return s.replace(' ',delim)
-	elif type(s) == int or type(s) == float: 
+	elif type(s) == int or type(s) == float:
 		return str(s)
-	elif type(s) == list or type(s) == set: 
+	elif type(s) == list or type(s) == set:
 		return delim.join(sorted([str(a) for a in s]))
 	else:
 		print("Error: cannot compress ",s)
 		sys.exit()
-		

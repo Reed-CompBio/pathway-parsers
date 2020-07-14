@@ -33,8 +33,8 @@ optional arguments:
 ```
 
 ## Requirements
-* Python3 (developed and tested with `python 3.5.1`)
-* BioPython (developed and tested with `biopython==1.76`)
+* Python3 (most recently tested with `python 3.8.2`)
+* BioPython (most recently tested with `biopython==1.77`)
 
 ## Options and Output Files
 
@@ -77,7 +77,7 @@ python3 parse_kegg.py --graph_single hsa04310 -o output/ -f uniprot-swissprot-id
 Parse the human Wnt signaling pathway with NCBI gene IDs. *TODO:* This is a little buggy.
 ```
 python3 parse_kegg.py --graph_single hsa04310 -o output -c ncbi-geneid
-``` 
+```
 
 ### Parse all KEGG Pathways
 Parse all human signaling pathways, converted to UniProtKB IDs (default). Store files in `output/` directory:
@@ -89,11 +89,6 @@ Parse all yeast signaling pathways, converted to UniProtKB IDs (default). Store 
 ```
 python3 parse_kegg.py --graph -s cse -o output/
 ```
-
-## Parsing Details
-
-TODO fill in.
-
 ## Filter File
 
 I downloaded the filter file of UniProtKB reviewed proteins (SwissProt) from the [UniProt Database website](https://www.uniprot.org/).  
@@ -101,3 +96,63 @@ I downloaded the filter file of UniProtKB reviewed proteins (SwissProt) from the
 
 The filter file passed with the `-f` or `--filter` option is a single-column file that contains all *allowed* namespace identifiers.  Passing this filter file in will require that all UniProtKB identifiers are reviewed.
 
+## Parsing Details
+
+Here, I use the parsed, reviewed-filtered [Wnt](https://www.genome.jp/kegg/pathway/hsa/hsa04310.html) to illustrate parsing details.  The files can be gnerated with the automatically
+
+```
+python3 parse_kegg.py --graph_single hsa04310 -o output/ -f uniprot-swissprot-ids.txt
+```
+
+### Gene Entries
+
+In some cases, a `gene-entry` is a collection of proteins (e.g. a protein family) that is considered as a single node in a KEGG pathway.  Using , gene entry 49 is `P36402|Q9HCS4|Q9NQB0|Q9UJU2`,
+which represents members of [TCF/LEF transcription factors](https://www.genome.jp/dbget-bin/www_bget?hsa:51176+hsa:6932+hsa:6934+hsa:83439).   Similarly, gene entry 50 is `Q09472|Q92793` represents [CREB-binding proteins](https://www.genome.jp/dbget-bin/www_bget?hsa:1387+hsa:2033).
+
+## Gene Groups
+
+Gene groups represent protein complexes from the `gene-entry` list.  A `gene-group` element consists of multiple `gene-entry` identifiers.  An example from `hsa05418` is
+
+```
+#id	component_ids	mapped_names	kegg_names
+228	68|70|82	P33151|P35222|P35968	hsa:1003|hsa:1499|hsa:3791
+```
+
+### From Relations to Edges
+
+The `gene-relations` file relies on gene entry and gene group IDs.  In our example above, there is an edge from gene entry 49 to gene entry 50:
+
+```
+#id1	id2	type	subtype
+50	49	PPrel	binding/association
+```
+
+In the **collapsed** edges file, the gene entry and gene group IDs are considered the nodes and the concatenated UniProt IDs are passed as node names.   Thus, we would have these bidirected edges in `output/hsa04310-collapsed-edges.txt`.
+
+```
+#node1	node2	node1type	node2type	relation_type
+Q09472|Q92793	P36402|Q9HCS4|Q9NQB0|Q9UJU2	gene	gene	binding/association
+P36402|Q9HCS4|Q9NQB0|Q9UJU2	Q09472|Q92793	gene	gene	binding/association
+```
+
+However, we often want to have the UniProt IDs as the nodes. In this case, in the **expanded** edges file we create edges for all (node1,node2) UniProt IDs.  In `output/hsa04310-expanded-edges.txt`, the single gene relation becomes
+
+```
+#node1	node2	edge_expansion:relation_type
+P36402	Q09472	mult_mapping_expansion:binding/association
+P36402	Q92793	mult_mapping_expansion:binding/association
+Q09472	P36402	mult_mapping_expansion:binding/association
+Q09472	Q9HCS4	mult_mapping_expansion:binding/association
+Q09472	Q9NQB0	mult_mapping_expansion:binding/association
+Q09472	Q9UJU2	mult_mapping_expansion:binding/association
+...
+```
+
+When there are `gene-group` entries for a pathway, these are expanded to include edges among all pairs of UniProtIDs in the complex.  While the Wnt pathway doesn't have any group entries, the `hsa05418` group entry above appears as the following in `output/hsa05418-expanded-edges.txt`:
+
+```
+#node1	node2	edge_expansion:relation_type
+P33151	P35222	group_expansion
+P33151	P35968	group_expansion
+...
+```
