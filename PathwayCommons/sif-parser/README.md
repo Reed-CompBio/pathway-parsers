@@ -1,4 +1,4 @@
-This parser parses Pathway Commons SIF files.  
+This parser parses Pathway Commons SIF files.   All files downloaded from [PathwayCommons v11](https://www.pathwaycommons.org/archives/PC2/v11/).
 
 ## NetPath
 
@@ -43,7 +43,7 @@ After generating the pathway files for all pathways, make a hand-curated list of
 
 ```
 mkdir reactome_subset
-cat reactome_pathways.txt | awk '{print "cp pid/"$1" reactome_subset/"$1}' | bash
+cat reactome_pathways.txt | awk '{print "cp reactome/"$1" reactome_subset/"$1}' | bash
 ls reactome_subset | wc -l
 ```
 
